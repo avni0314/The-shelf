@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Shelf — Personal Library</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <h1 class="site-title">The Shelf</h1>
+    <p class="site-subtitle">A quiet record of everything I've read</p>
+  </div>
+  <div class="header-divider" aria-hidden="true">
+    <span></span><span class="diamond">◆</span><span></span>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="control-bar" aria-label="Filter and search controls">
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="searchInput" placeholder="Search by title or author…" aria-label="Search by title or author">
+    </div>
+
+    <div class="genre-pills" id="genrePills" role="group" aria-label="Filter by genre">
+      <!-- Pills injected by JS -->
+    </div>
+
+    <button id="favToggle" class="fav-toggle" aria-pressed="false">
+      <svg viewBox="0 0 24 24" class="star-icon"><use href="#star-shape"></use></svg>
+      <span>Favorites only</span>
+    </button>
+
+    <button id="addBookBtn" class="add-book-btn" type="button">
+      <span class="plus-icon">+</span> Add a Book
+    </button>
+  </section>
+
+  <p class="result-count" id="resultCount"></p>
+
+  <section class="shelf" id="bookGrid" aria-live="polite">
+    <!-- Book cards injected by JS -->
+  </section>
+
+  <p class="empty-state" id="emptyState" hidden>No books match your search — try a different title, author, or genre.</p>
+
+</main>
+
+<footer class="site-footer">
+  <p>Curated with care · <span id="bookCount">0</span> books on the shelf</p>
+</footer>
+
+<!-- Modal for expanded book detail -->
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal-card" id="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <div class="modal-body">
+      <div class="modal-cover-wrap">
+        <img id="modalCover" class="modal-cover" src="" alt="">
+      </div>
+      <div class="modal-info">
+        <p class="modal-genre" id="modalGenre"></p>
+        <h2 class="modal-title" id="modalTitle"></h2>
+        <p class="modal-author" id="modalAuthor"></p>
+        <div class="modal-rating" id="modalRating"></div>
+
+        <div class="modal-section">
+          <h3>Personal Review</h3>
+          <p id="modalReview"></p>
+        </div>
+        <div class="modal-section">
+          <h3>Favorite Moment</h3>
+          <p id="modalMoment"></p>
+        </div>
+        <div class="modal-section modal-quote-section">
+          <h3>Favorite Quote</h3>
+          <blockquote id="modalQuote"></blockquote>
+        </div>
+
+        <button id="deleteBookBtn" class="delete-book-btn" type="button">Remove from shelf</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Book form modal -->
+<div class="modal-overlay" id="formOverlay" hidden>
+  <div class="modal-card form-card" role="dialog" aria-modal="true" aria-labelledby="formHeading">
+    <button class="modal-close" id="formClose" aria-label="Close">✕</button>
+    <div class="form-body">
+      <h2 id="formHeading" class="form-heading">Add a Book</h2>
+      <p class="form-sub">Fill in the details below — your book will be saved right in this browser.</p>
+
+      <form id="addBookForm">
+        <div class="form-grid">
+
+          <div class="form-field cover-field">
+            <label for="coverInput">Cover image</label>
+            <div class="cover-upload" id="coverDropZone">
+              <img id="coverPreview" class="cover-preview" hidden alt="Cover preview">
+              <span id="coverPlaceholder" class="cover-placeholder">Click to upload<br><small>or drop an image here</small></span>
+            </div>
+            <input type="file" id="coverInput" accept="image/*" hidden>
+            <p class="field-hint">JPG or PNG, ideally a 2:3 portrait crop.</p>
+          </div>
+
+          <div class="form-field">
+            <label for="titleInput">Title <span class="req">*</span></label>
+            <input type="text" id="titleInput" required placeholder="The Hobbit">
+          </div>
+
+          <div class="form-field">
+            <label for="authorInput">Author <span class="req">*</span></label>
+            <input type="text" id="authorInput" required placeholder="J.R.R. Tolkien">
+          </div>
+
+          <div class="form-field">
+            <label for="genreInput">Genre <span class="req">*</span></label>
+            <input type="text" id="genreInput" required placeholder="Fantasy" list="genreSuggestions">
+            <datalist id="genreSuggestions"></datalist>
+          </div>
+
+          <div class="form-field">
+            <label for="ratingInput">Star rating <span class="req">*</span></label>
+            <div class="rating-picker" id="ratingPicker">
+              <svg data-val="1" viewBox="0 0 24 24"><use href="#star-shape"></use></svg>
+              <svg data-val="2" viewBox="0 0 24 24"><use href="#star-shape"></use></svg>
+              <svg data-val="3" viewBox="0 0 24 24"><use href="#star-shape"></use></svg>
+              <svg data-val="4" viewBox="0 0 24 24"><use href="#star-shape"></use></svg>
+              <svg data-val="5" viewBox="0 0 24 24"><use href="#star-shape"></use></svg>
+            </div>
+            <input type="hidden" id="ratingInput" value="0">
+          </div>
+
+          <div class="form-field full-width">
+            <label for="reviewInput">Personal review</label>
+            <textarea id="reviewInput" rows="2" placeholder="A few sentences on what you thought…"></textarea>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="momentInput">Favorite moment</label>
+            <textarea id="momentInput" rows="2" placeholder="The scene that stuck with you…"></textarea>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="quoteInput">Favorite quote</label>
+            <textarea id="quoteInput" rows="2" placeholder="A line worth remembering…"></textarea>
+          </div>
+
+        </div>
+
+        <p class="form-error" id="formError" hidden></p>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="formCancel">Cancel</button>
+          <button type="submit" class="btn-primary">Add to Shelf</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Reusable star icon shape -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <path id="star-shape" d="M12 2.5l2.9 6.3 6.8.7-5.1 4.7 1.5 6.8L12 17.7l-6.1 3.3 1.5-6.8-5.1-4.7 6.8-.7z"></path>
+  </defs>
+</svg>
+
+<script src="books.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
