@@ -9,6 +9,9 @@
 <body>
 
 <header class="site-header">
+  <div class="auth-widget" id="authWidget">
+    <button id="authOpenBtn" class="auth-open-btn" type="button">Sign In</button>
+  </div>
   <div class="header-inner">
     <h1 class="site-title">The Shelf</h1>
     <p class="site-subtitle">A quiet record of everything I've read</p>
@@ -84,7 +87,10 @@
           <blockquote id="modalQuote"></blockquote>
         </div>
 
-        <button id="deleteBookBtn" class="delete-book-btn" type="button">Remove from shelf</button>
+        <div class="modal-actions" id="modalActions">
+          <button id="editBookBtn" class="edit-book-btn" type="button">Edit review</button>
+          <button id="deleteBookBtn" class="delete-book-btn" type="button">Remove from shelf</button>
+        </div>
       </div>
     </div>
   </div>
@@ -173,6 +179,34 @@
     <path id="star-shape" d="M12 2.5l2.9 6.3 6.8.7-5.1 4.7 1.5 6.8L12 17.7l-6.1 3.3 1.5-6.8-5.1-4.7 6.8-.7z"></path>
   </defs>
 </svg>
+
+<!-- Auth modal -->
+<div class="modal-overlay" id="authOverlay" hidden>
+  <div class="modal-card auth-card" role="dialog" aria-modal="true" aria-labelledby="authHeading">
+    <button class="modal-close" id="authClose" aria-label="Close">✕</button>
+    <div class="form-body">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLoginBtn" type="button">Sign In</button>
+        <button class="auth-tab" id="tabRegisterBtn" type="button">Create Account</button>
+      </div>
+
+      <form id="authForm">
+        <div class="form-field">
+          <label for="authUsername">Username</label>
+          <input type="text" id="authUsername" required placeholder="yourusername">
+        </div>
+        <div class="form-field">
+          <label for="authPassword">Password</label>
+          <input type="password" id="authPassword" required placeholder="••••••••">
+        </div>
+        <p class="form-error" id="authError" hidden></p>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="authSubmitBtn">Sign In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script src="books.js"></script>
 <script src="script.js"></script>

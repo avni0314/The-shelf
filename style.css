@@ -685,6 +685,172 @@ body{
   .container{ padding: 0 16px 60px; }
 }
 
+/* ---------------------------------- AUTHENTICATION & EDIT --------------------- */
+
+.auth-widget {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--white-card);
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(63,58,54,0.06);
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-open-btn {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--powder-deep);
+  background: var(--cream);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+.auth-open-btn:hover {
+  background: var(--powder-deep);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.user-badge {
+  font-size: 0.88rem;
+  color: var(--ink);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #B7C9B7; /* sage green */
+  display: inline-block;
+  transition: background 0.3s ease;
+}
+.sync-dot.synced {
+  background: #7ca97c;
+  box-shadow: 0 0 4px rgba(124, 169, 124, 0.6);
+}
+.sync-dot.syncing {
+  background: var(--gold);
+  animation: pulseSync 1.2s infinite ease-in-out;
+}
+
+@keyframes pulseSync {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0.6; }
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--blush-deep);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+.logout-btn:hover {
+  color: #c77b7b;
+}
+
+.auth-card {
+  max-width: 420px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1.5px solid var(--cream-deep);
+  margin-bottom: 24px;
+  padding-bottom: 6px;
+}
+
+.auth-tab {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 4px 0;
+  position: relative;
+  transition: color 0.22s ease;
+}
+.auth-tab:hover {
+  color: var(--ink);
+}
+.auth-tab.active {
+  color: var(--ink);
+}
+.auth-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -7.5px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--lavender-deep);
+  border-radius: 999px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.edit-book-btn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sage-deep);
+  background: none;
+  border: 1.5px solid var(--sage-deep);
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.edit-book-btn:hover {
+  background: var(--sage-deep);
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  .auth-widget {
+    position: static;
+    margin: 10px auto 20px;
+    width: fit-content;
+    justify-content: center;
+  }
+}
+
 @media (prefers-reduced-motion: reduce){
   *{ animation: none !important; transition: none !important; }
 }
