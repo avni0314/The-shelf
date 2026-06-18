@@ -84,7 +84,7 @@
   // when deploying the frontend on GitHub Pages. Leave it empty for local development.
   const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? ""
-    : ""; // <-- Paste your production backend URL here
+    : "https://the-shelf-t6oa.onrender.com"; // <-- Paste your production backend URL here
 
   const API = {
     async request(path, options = {}) {
