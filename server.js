@@ -19,7 +19,7 @@ app.use(express.json({ limit: "10mb" })); // Increase limit for base64 book cove
 app.use(express.static(path.join(__dirname, "The-shelf-main")));
 
 /* ---------- AUTH MIDDLEWARE ---------- */
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -27,25 +27,26 @@ function authenticateToken(req, res, next) {
     return res.status(401).json({ error: "Access token is missing" });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ error: "Invalid or expired token" });
-    }
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    return res.status(403).json({ error: "Invalid or expired token" });
+  }
 
-    const user = db.findUserById(decoded.userId);
-    if (!user) {
-      return res.status(403).json({ error: "User no longer exists" });
-    }
+  const user = await db.findUserById(decoded.userId);
+  if (!user) {
+    return res.status(403).json({ error: "User no longer exists" });
+  }
 
-    req.user = user;
-    next();
-  });
+  req.user = user;
+  next();
 }
 
 /* ---------- AUTH ROUTE API ---------- */
 
 // POST /api/auth/register
-app.post("/api/auth/register", (req, res) => {
+app.post("/api/auth/register", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -66,7 +67,7 @@ app.post("/api/auth/register", (req, res) => {
   }
 
   // Check if username is unique
-  const existingUser = db.findUserByUsername(trimmedUsername);
+  const existingUser = await db.findUserByUsername(trimmedUsername);
   if (existingUser) {
     return res.status(400).json({ error: "Username is already taken" });
   }
@@ -74,10 +75,10 @@ app.post("/api/auth/register", (req, res) => {
   // Create user
   try {
     const passwordHash = bcrypt.hashSync(trimmedPassword, 10);
-    const user = db.createUser(trimmedUsername, passwordHash);
+    const user = await db.createUser(trimmedUsername, passwordHash);
 
     // Seed account with default starter books
-    db.seedStarterBooks(user.id);
+    await db.seedStarterBooks(user.id);
 
     // Generate JWT expiring in 7 days
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
@@ -96,14 +97,14 @@ app.post("/api/auth/register", (req, res) => {
 });
 
 // POST /api/auth/login
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password are required" });
   }
 
-  const user = db.findUserByUsername(username.trim());
+  const user = await db.findUserByUsername(username.trim());
   if (!user) {
     return res.status(401).json({ error: "Invalid username or password" });
   }
@@ -144,9 +145,9 @@ app.get("/api/auth/me", authenticateToken, (req, res) => {
 /* ---------- BOOKS CRUD ROUTE API ---------- */
 
 // GET /api/books
-app.get("/api/books", authenticateToken, (req, res) => {
+app.get("/api/books", authenticateToken, async (req, res) => {
   try {
-    const books = db.findBooksByUserId(req.user.id);
+    const books = await db.findBooksByUserId(req.user.id);
     res.json(books);
   } catch (err) {
     res.status(500).json({ error: "Failed to retrieve books" });
@@ -154,14 +155,14 @@ app.get("/api/books", authenticateToken, (req, res) => {
 });
 
 // POST /api/books
-app.post("/api/books", authenticateToken, (req, res) => {
+app.post("/api/books", authenticateToken, async (req, res) => {
   const { title, author, genre } = req.body;
   if (!title || !author || !genre) {
     return res.status(400).json({ error: "Title, author, and genre are required" });
   }
 
   try {
-    const newBook = db.createBook(req.user.id, req.body);
+    const newBook = await db.createBook(req.user.id, req.body);
     res.status(201).json(newBook);
   } catch (err) {
     res.status(500).json({ error: "Failed to add book" });
@@ -169,9 +170,9 @@ app.post("/api/books", authenticateToken, (req, res) => {
 });
 
 // PUT /api/books/:id
-app.put("/api/books/:id", authenticateToken, (req, res) => {
+app.put("/api/books/:id", authenticateToken, async (req, res) => {
   try {
-    const updatedBook = db.updateBook(req.params.id, req.user.id, req.body);
+    const updatedBook = await db.updateBook(req.params.id, req.user.id, req.body);
     if (!updatedBook) {
       return res.status(404).json({ error: "Book not found or unauthorized" });
     }
@@ -182,9 +183,9 @@ app.put("/api/books/:id", authenticateToken, (req, res) => {
 });
 
 // DELETE /api/books/:id
-app.delete("/api/books/:id", authenticateToken, (req, res) => {
+app.delete("/api/books/:id", authenticateToken, async (req, res) => {
   try {
-    const deleted = db.deleteBook(req.params.id, req.user.id);
+    const deleted = await db.deleteBook(req.params.id, req.user.id);
     if (!deleted) {
       return res.status(404).json({ error: "Book not found or unauthorized" });
     }
@@ -195,7 +196,7 @@ app.delete("/api/books/:id", authenticateToken, (req, res) => {
 });
 
 // POST /api/books/sync
-app.post("/api/books/sync", authenticateToken, (req, res) => {
+app.post("/api/books/sync", authenticateToken, async (req, res) => {
   const { books: localBooks } = req.body;
 
   if (!Array.isArray(localBooks)) {
@@ -203,7 +204,7 @@ app.post("/api/books/sync", authenticateToken, (req, res) => {
   }
 
   try {
-    const existingBooks = db.findBooksByUserId(req.user.id);
+    const existingBooks = await db.findBooksByUserId(req.user.id);
     
     // Create a set of composite keys (title + '|' + author) of existing books to search quickly
     const existingKeys = new Set(
@@ -223,14 +224,14 @@ app.post("/api/books/sync", authenticateToken, (req, res) => {
       }
 
       // Add to database
-      const newBook = db.createBook(req.user.id, book);
+      const newBook = await db.createBook(req.user.id, book);
       addedBooks.push(newBook);
       // Update key set so subsequent matches in local list are also filtered
       existingKeys.add(bookKey);
     }
 
     // Return the updated full list of books for the user
-    const allBooks = db.findBooksByUserId(req.user.id);
+    const allBooks = await db.findBooksByUserId(req.user.id);
     res.json({
       success: true,
       syncedCount: addedBooks.length,

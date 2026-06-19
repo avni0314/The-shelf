@@ -1,10 +1,26 @@
-const fs = require("fs");
-const path = require("path");
+const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
 
-const DB_PATH = path.join(__dirname, "data", "db.json");
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error("FATAL: MONGODB_URI environment variable is not set.");
+  process.exit(1);
+}
 
-// Default starter books (from books.js)
+let client;
+let db;
+
+async function getDb() {
+  if (db) return db;
+  if (!client) {
+    client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    console.log("Connected to MongoDB Atlas");
+  }
+  db = client.db("the_shelf");
+  return db;
+}
+
 const STARTER_BOOKS = [
   {
     title: "Pride and Prejudice",
@@ -88,87 +104,42 @@ const STARTER_BOOKS = [
   }
 ];
 
-function ensureDirExists(filePath) {
-  const dirname = path.dirname(filePath);
-  if (!fs.existsSync(dirname)) {
-    fs.mkdirSync(dirname, { recursive: true });
-  }
-}
-
-function loadData() {
-  ensureDirExists(DB_PATH);
-  if (!fs.existsSync(DB_PATH)) {
-    const initial = { users: [], books: [] };
-    fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2), "utf8");
-    return initial;
-  }
-  try {
-    const raw = fs.readFileSync(DB_PATH, "utf8");
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error("Error reading database file, using fallback empty db:", err);
-    return { users: [], books: [] };
-  }
-}
-
-function saveData(data) {
-  ensureDirExists(DB_PATH);
-  const tempPath = DB_PATH + ".tmp";
-  try {
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf8");
-    fs.renameSync(tempPath, DB_PATH);
-    return true;
-  } catch (err) {
-    console.error("Critical: failed to write to database file:", err);
-    if (fs.existsSync(tempPath)) {
-      try { fs.unlinkSync(tempPath); } catch (_) {}
-    }
-    return false;
-  }
-}
-
 function generateId() {
   return crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
 }
 
 module.exports = {
-  // User operations
-  findUserByUsername(username) {
-    const db = loadData();
-    return db.users.find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
+  async findUserByUsername(username) {
+    const database = await getDb();
+    return database.collection("users").findOne({
+      username: { $regex: new RegExp(`^${username}$`, "i") }
+    });
   },
 
-  findUserById(id) {
-    const db = loadData();
-    return db.users.find(u => u.id === id) || null;
+  async findUserById(id) {
+    const database = await getDb();
+    return database.collection("users").findOne({ id });
   },
 
-  createUser(username, passwordHash) {
-    const db = loadData();
+  async createUser(username, passwordHash) {
+    const database = await getDb();
     const newUser = {
       id: generateId(),
       username,
       passwordHash,
       createdAt: new Date().toISOString()
     };
-    db.users.push(newUser);
-    saveData(db);
+    await database.collection("users").insertOne(newUser);
     return newUser;
   },
 
-  // Book operations
-  findBooksByUserId(userId) {
-    const db = loadData();
-    return db.books.filter(b => b.userId === userId);
+  async findBooksByUserId(userId) {
+    const database = await getDb();
+    return database.collection("books").find({ userId }).toArray();
   },
 
-  findBookByIdAndUser(id, userId) {
-    const db = loadData();
-    return db.books.find(b => b.id === id && b.userId === userId) || null;
-  },
-
-  createBook(userId, bookData) {
-    const db = loadData();
+  async createBook(userId, bookData) {
+    const database = await getDb();
     const newBook = {
       id: generateId(),
       userId,
@@ -182,46 +153,40 @@ module.exports = {
       quote: bookData.quote || "",
       createdAt: new Date().toISOString()
     };
-    db.books.push(newBook);
-    saveData(db);
+    await database.collection("books").insertOne(newBook);
     return newBook;
   },
 
-  updateBook(id, userId, updatedData) {
-    const db = loadData();
-    const index = db.books.findIndex(b => b.id === id && b.userId === userId);
-    if (index === -1) return null;
+  async updateBook(id, userId, updatedData) {
+    const database = await getDb();
+    const existing = await database.collection("books").findOne({ id, userId });
+    if (!existing) return null;
 
-    db.books[index] = {
-      ...db.books[index],
-      title: updatedData.title !== undefined ? updatedData.title : db.books[index].title,
-      author: updatedData.author !== undefined ? updatedData.author : db.books[index].author,
-      cover: updatedData.cover !== undefined ? updatedData.cover : db.books[index].cover,
-      genre: updatedData.genre !== undefined ? updatedData.genre : db.books[index].genre,
-      rating: updatedData.rating !== undefined ? Number(updatedData.rating) : db.books[index].rating,
-      review: updatedData.review !== undefined ? updatedData.review : db.books[index].review,
-      moment: updatedData.moment !== undefined ? updatedData.moment : db.books[index].moment,
-      quote: updatedData.quote !== undefined ? updatedData.quote : db.books[index].quote,
+    const updated = {
+      ...existing,
+      title: updatedData.title !== undefined ? updatedData.title : existing.title,
+      author: updatedData.author !== undefined ? updatedData.author : existing.author,
+      cover: updatedData.cover !== undefined ? updatedData.cover : existing.cover,
+      genre: updatedData.genre !== undefined ? updatedData.genre : existing.genre,
+      rating: updatedData.rating !== undefined ? Number(updatedData.rating) : existing.rating,
+      review: updatedData.review !== undefined ? updatedData.review : existing.review,
+      moment: updatedData.moment !== undefined ? updatedData.moment : existing.moment,
+      quote: updatedData.quote !== undefined ? updatedData.quote : existing.quote,
       updatedAt: new Date().toISOString()
     };
 
-    saveData(db);
-    return db.books[index];
+    await database.collection("books").replaceOne({ id, userId }, updated);
+    return updated;
   },
 
-  deleteBook(id, userId) {
-    const db = loadData();
-    const lengthBefore = db.books.length;
-    db.books = db.books.filter(b => !(b.id === id && b.userId === userId));
-    if (db.books.length === lengthBefore) return false;
-    saveData(db);
-    return true;
+  async deleteBook(id, userId) {
+    const database = await getDb();
+    const result = await database.collection("books").deleteOne({ id, userId });
+    return result.deletedCount > 0;
   },
 
-  seedStarterBooks(userId) {
-    const db = loadData();
-    
-    // Create new book entries for this user based on STARTER_BOOKS
+  async seedStarterBooks(userId) {
+    const database = await getDb();
     const seeded = STARTER_BOOKS.map(b => ({
       id: generateId(),
       userId,
@@ -235,9 +200,7 @@ module.exports = {
       quote: b.quote,
       createdAt: new Date().toISOString()
     }));
-
-    db.books.push(...seeded);
-    saveData(db);
+    await database.collection("books").insertMany(seeded);
     return seeded;
   }
 };
